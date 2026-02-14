@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, X, Check, Loader2, Utensils } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useDiet } from '../hooks/useDiet';
@@ -14,6 +14,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const COMMON_FOODS = [
   { foodName: '雞胸肉 100g', protein: 31, calories: 165 },
@@ -44,6 +46,9 @@ export default function Diet() {
   const profile = useLiveQuery(() => db.userProfile.toCollection().first());
   const [showForm, setShowForm] = useState(false);
   const [showCommon, setShowCommon] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({ visible: false, message: '', type: 'success' });
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const proteinGoal = profile?.dailyProteinGoal ?? 120;
   const calorieGoal = profile?.dailyCalorieGoal ?? 1800;
@@ -62,9 +67,18 @@ export default function Diet() {
   }
 
   async function handleSave() {
-    if (!form.foodName) return;
-    await addEntry({ ...form, date: selectedDate });
-    setShowForm(false);
+    if (!form.foodName.trim()) {
+      setToast({ visible: true, message: '請輸入食物名稱', type: 'error' as const });
+      return;
+    }
+    setSaving(true);
+    try {
+      await addEntry({ ...form, date: selectedDate });
+      setShowForm(false);
+      setToast({ visible: true, message: '已儲存', type: 'success' as const });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function quickAdd(food: typeof COMMON_FOODS[number], meal: DietEntry['meal']) {
@@ -76,7 +90,17 @@ export default function Diet() {
       calories: food.calories,
     });
     setShowCommon(false);
+    setToast({ visible: true, message: '已新增', type: 'success' as const });
   }
+
+  async function handleConfirmDelete() {
+    if (confirmDelete == null) return;
+    await deleteEntry(confirmDelete);
+    setConfirmDelete(null);
+    setToast({ visible: true, message: '已刪除', type: 'success' as const });
+  }
+
+  const closeToast = useCallback(() => setToast((t) => ({ ...t, visible: false })), []);
 
   const mealGroups = (['breakfast', 'lunch', 'dinner', 'snack'] as const).map((meal) => ({
     meal,
@@ -96,129 +120,177 @@ export default function Diet() {
     });
   }
 
+  const hasAnyEntries = allEntries.length > 0;
+
   return (
     <div className="p-4 max-w-lg mx-auto space-y-6">
       <h1 className="text-xl font-bold">飲食紀錄</h1>
 
       {/* Date Navigation */}
       <div className="flex items-center justify-between bg-slate-800 rounded-xl p-3 border border-slate-700/50">
-        <button onClick={() => setSelectedDate((d) => shiftDate(d, -1))} className="p-1 text-slate-400 hover:text-white">
+        <button
+          onClick={() => setSelectedDate((d) => shiftDate(d, -1))}
+          className="p-2 text-slate-400 hover:text-white rounded-lg"
+          aria-label="前一天"
+        >
           <ChevronLeft size={20} />
         </button>
         <span className="font-medium">{selectedDate}</span>
-        <button onClick={() => setSelectedDate((d) => shiftDate(d, 1))} className="p-1 text-slate-400 hover:text-white">
+        <button
+          onClick={() => setSelectedDate((d) => shiftDate(d, 1))}
+          className="p-2 text-slate-400 hover:text-white rounded-lg"
+          aria-label="後一天"
+        >
           <ChevronRight size={20} />
         </button>
       </div>
 
+      {/* Empty state for entire app */}
+      {!hasAnyEntries && entries.length === 0 && (
+        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700/50 text-center">
+          <Utensils size={32} className="text-slate-500 mx-auto mb-3" />
+          <p className="text-slate-400 mb-4">尚無飲食紀錄</p>
+          <button
+            onClick={() => openAdd('lunch')}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
+          >
+            <Plus size={16} /> 記錄今天的第一餐
+          </button>
+        </div>
+      )}
+
       {/* Progress Bars */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-3">
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span>蛋白質</span>
-            <span className={totalProtein >= proteinGoal ? 'text-green-400' : ''}>
-              {totalProtein} / {proteinGoal} g
-            </span>
-          </div>
-          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 rounded-full transition-all"
-              style={{ width: `${Math.min(100, (totalProtein / proteinGoal) * 100)}%` }}
-            />
-          </div>
-        </div>
-        <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span>熱量</span>
-            <span className={totalCalories > calorieGoal ? 'text-red-400' : ''}>
-              {totalCalories} / {calorieGoal} kcal
-            </span>
-          </div>
-          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${totalCalories > calorieGoal ? 'bg-red-500' : 'bg-amber-500'}`}
-              style={{ width: `${Math.min(100, (totalCalories / calorieGoal) * 100)}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Meal Groups */}
-      {mealGroups.map(({ meal, items }) => (
-        <div key={meal} className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium">{MEAL_LABELS[meal]}</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowCommon(true); setForm((f) => ({ ...f, meal })); }}
-                className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded-md text-slate-300 transition-colors"
-              >
-                常用
-              </button>
-              <button
-                onClick={() => openAdd(meal)}
-                className="text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-2 py-1 rounded-md transition-colors"
-              >
-                <Plus size={14} className="inline -mt-0.5" /> 新增
-              </button>
+      {(hasAnyEntries || entries.length > 0) && (
+        <>
+          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-3">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>蛋白質</span>
+                <span className={totalProtein >= proteinGoal ? 'text-green-400' : ''}>
+                  {totalProtein} / {proteinGoal} g
+                </span>
+              </div>
+              <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (totalProtein / proteinGoal) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>熱量</span>
+                <span className={totalCalories > calorieGoal ? 'text-red-400' : ''}>
+                  {totalCalories} / {calorieGoal} kcal
+                </span>
+              </div>
+              <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${totalCalories > calorieGoal ? 'bg-red-500' : 'bg-amber-500'}`}
+                  style={{ width: `${Math.min(100, (totalCalories / calorieGoal) * 100)}%` }}
+                />
+              </div>
             </div>
           </div>
-          {items.length === 0 ? (
-            <p className="text-sm text-slate-500">尚無紀錄</p>
-          ) : (
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <span>{item.foodName}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-blue-400">{item.protein}g</span>
-                    <span className="text-amber-400">{item.calories}kcal</span>
-                    <button onClick={() => deleteEntry(item.id!)} className="text-slate-500 hover:text-red-400">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+
+          {/* Meal Groups */}
+          {mealGroups.map(({ meal, items }) => (
+            <div key={meal} className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium">{MEAL_LABELS[meal]}</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowCommon(true); setForm((f) => ({ ...f, meal })); }}
+                    className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-md text-slate-300 transition-colors min-h-[44px]"
+                  >
+                    常用
+                  </button>
+                  <button
+                    onClick={() => openAdd(meal)}
+                    className="text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-3 py-1.5 rounded-md transition-colors min-h-[44px]"
+                  >
+                    <Plus size={14} className="inline -mt-0.5" /> 新增
+                  </button>
                 </div>
-              ))}
+              </div>
+              {items.length === 0 ? (
+                <p className="text-sm text-slate-500">尚無紀錄</p>
+              ) : (
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-sm">
+                      <span>{item.foodName}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-blue-400">{item.protein}g</span>
+                        <span className="text-amber-400">{item.calories}kcal</span>
+                        <button
+                          onClick={() => setConfirmDelete(item.id!)}
+                          className="p-2 text-slate-500 hover:text-red-400 rounded-lg"
+                          aria-label={`刪除 ${item.foodName}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+          ))}
 
-      {/* Weekly Chart */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-        <h2 className="text-sm font-semibold text-slate-300 mb-3">近 7 日蛋白質攝取</h2>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={weekData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-            <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
-                borderRadius: '8px',
-                color: '#f1f5f9',
-              }}
-            />
-            <Bar dataKey="protein" fill="#3b82f6" radius={[4, 4, 0, 0]} name="蛋白質 (g)" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          {/* Weekly Chart */}
+          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
+            <h2 className="text-sm font-semibold text-slate-300 mb-3">近 7 日蛋白質攝取</h2>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={weekData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9',
+                  }}
+                />
+                <Bar dataKey="protein" fill="#3b82f6" radius={[4, 4, 0, 0]} name="蛋白質 (g)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
       {/* Add Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowForm(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="diet-form-title"
+            className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <h3 className="font-semibold">新增 {MEAL_LABELS[form.meal]}</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white">
+              <h3 id="diet-form-title" className="font-semibold">新增 {MEAL_LABELS[form.meal]}</h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                aria-label="關閉"
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="p-4 space-y-3">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">食物名稱</label>
+                <label htmlFor="diet-foodName" className="block text-sm text-slate-400 mb-1">
+                  食物名稱<span className="text-red-400 ml-0.5">*</span>
+                </label>
                 <input
+                  id="diet-foodName"
                   type="text"
                   value={form.foodName}
                   onChange={(e) => setForm((f) => ({ ...f, foodName: e.target.value }))}
@@ -228,8 +300,9 @@ export default function Diet() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">蛋白質 (g)</label>
+                  <label htmlFor="diet-protein" className="block text-sm text-slate-400 mb-1">蛋白質 (g)</label>
                   <input
+                    id="diet-protein"
                     type="number"
                     value={form.protein || ''}
                     onChange={(e) => setForm((f) => ({ ...f, protein: parseFloat(e.target.value) || 0 }))}
@@ -237,8 +310,9 @@ export default function Diet() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">熱量 (kcal)</label>
+                  <label htmlFor="diet-calories" className="block text-sm text-slate-400 mb-1">熱量 (kcal)</label>
                   <input
+                    id="diet-calories"
                     type="number"
                     value={form.calories || ''}
                     onChange={(e) => setForm((f) => ({ ...f, calories: parseFloat(e.target.value) || 0 }))}
@@ -247,8 +321,9 @@ export default function Diet() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">餐別</label>
+                <label htmlFor="diet-meal" className="block text-sm text-slate-400 mb-1">餐別</label>
                 <select
+                  id="diet-meal"
                   value={form.meal}
                   onChange={(e) => setForm((f) => ({ ...f, meal: e.target.value as DietEntry['meal'] }))}
                   className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
@@ -262,9 +337,11 @@ export default function Diet() {
             <div className="p-4 border-t border-slate-700">
               <button
                 onClick={handleSave}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg transition-colors"
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-lg transition-colors min-h-[44px]"
               >
-                <Check size={16} /> 儲存
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {saving ? '儲存中...' : '儲存'}
               </button>
             </div>
           </div>
@@ -273,11 +350,24 @@ export default function Diet() {
 
       {/* Common Foods Modal */}
       {showCommon && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md max-h-[70vh] overflow-y-auto border border-slate-700">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowCommon(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="common-foods-title"
+            className="bg-slate-800 rounded-xl w-full max-w-md max-h-[70vh] overflow-y-auto border border-slate-700"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-700 sticky top-0 bg-slate-800">
-              <h3 className="font-semibold">常用食物 — {MEAL_LABELS[form.meal]}</h3>
-              <button onClick={() => setShowCommon(false)} className="text-slate-400 hover:text-white">
+              <h3 id="common-foods-title" className="font-semibold">常用食物 — {MEAL_LABELS[form.meal]}</h3>
+              <button
+                onClick={() => setShowCommon(false)}
+                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                aria-label="關閉"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -286,7 +376,7 @@ export default function Diet() {
                 <button
                   key={i}
                   onClick={() => quickAdd(food, form.meal)}
-                  className="w-full flex items-center justify-between bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg text-sm transition-colors text-left"
+                  className="w-full flex items-center justify-between bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg text-sm transition-colors text-left min-h-[44px]"
                 >
                   <span>{food.foodName}</span>
                   <div className="flex gap-3 text-xs">
@@ -299,6 +389,22 @@ export default function Diet() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDelete != null}
+        title="刪除食物"
+        message="確定要刪除這筆飲食紀錄嗎？"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={closeToast}
+      />
     </div>
   );
 }

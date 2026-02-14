@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { Save, Download, Upload, Apple, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Save, Download, Upload, Apple, Trash2, Loader2 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { UserProfile } from '../types';
 import { parseAppleHealthExport } from '../utils/appleHealthParser';
 import { isShortcutJSON, parseShortcutJSON } from '../utils/shortcutImporter';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 export default function Settings() {
   const profile = useLiveQuery(() => db.userProfile.toCollection().first());
@@ -17,7 +19,9 @@ export default function Settings() {
     dailyProteinGoal: 120,
     dailyCalorieGoal: 1800,
   });
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({ visible: false, message: '', type: 'success' });
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Apple Health import state
   const [importing, setImporting] = useState(false);
@@ -29,6 +33,8 @@ export default function Settings() {
   const healthWorkoutCount = useLiveQuery(() => db.healthWorkouts.count()) ?? 0;
   const activityCount = useLiveQuery(() => db.activitySummaries.count()) ?? 0;
 
+  const closeToast = useCallback(() => setToast((t) => ({ ...t, visible: false })), []);
+
   useEffect(() => {
     if (profile) {
       setForm(profile);
@@ -36,13 +42,17 @@ export default function Settings() {
   }, [profile]);
 
   async function handleSave() {
-    if (profile?.id) {
-      await db.userProfile.update(profile.id, form);
-    } else {
-      await db.userProfile.add(form);
+    setSaving(true);
+    try {
+      if (profile?.id) {
+        await db.userProfile.update(profile.id, form);
+      } else {
+        await db.userProfile.add(form);
+      }
+      setToast({ visible: true, message: '已儲存', type: 'success' as const });
+    } finally {
+      setSaving(false);
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }
 
   async function handleAppleHealthImport() {
@@ -115,8 +125,9 @@ export default function Settings() {
           activities: result.activitySummaries.length,
         });
       }
+      setToast({ visible: true, message: '匯入完成', type: 'success' as const });
     } catch (err) {
-      alert(`匯入失敗：${err instanceof Error ? err.message : '未知錯誤'}`);
+      setToast({ visible: true, message: `匯入失敗：${err instanceof Error ? err.message : '未知錯誤'}`, type: 'error' as const });
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -124,11 +135,12 @@ export default function Settings() {
   }
 
   async function clearHealthData() {
-    if (!confirm('確定要清除所有 Apple Health 匯入的數據嗎？')) return;
     await db.healthMetrics.clear();
     await db.healthWorkouts.clear();
     await db.activitySummaries.clear();
     setImportResult(null);
+    setShowClearConfirm(false);
+    setToast({ visible: true, message: '已清除 Apple Health 數據', type: 'success' as const });
   }
 
   async function handleExport() {
@@ -188,9 +200,9 @@ export default function Settings() {
           await db.activitySummaries.clear();
           await db.activitySummaries.bulkAdd(data.activitySummaries.map(({ id: _id, ...r }: Record<string, unknown>) => r));
         }
-        alert('匯入成功！');
+        setToast({ visible: true, message: '匯入成功', type: 'success' as const });
       } catch {
-        alert('匯入失敗：檔案格式不正確');
+        setToast({ visible: true, message: '匯入失敗：檔案格式不正確', type: 'error' as const });
       }
     };
     input.click();
@@ -245,7 +257,7 @@ export default function Settings() {
         ) : (
           <button
             onClick={handleAppleHealthImport}
-            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
           >
             <Upload size={16} /> 選擇 XML 或 JSON 匯入
           </button>
@@ -268,10 +280,10 @@ export default function Settings() {
 
         {hasHealthData && (
           <button
-            onClick={clearHealthData}
-            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+            onClick={() => setShowClearConfirm(true)}
+            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors min-h-[44px] px-2"
           >
-            <Trash2 size={12} /> 清除 Apple Health 數據
+            <Trash2 size={14} /> 清除 Apple Health 數據
           </button>
         )}
       </div>
@@ -281,8 +293,9 @@ export default function Settings() {
         <h2 className="font-semibold text-slate-300">個人資料</h2>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">身高 (cm)</label>
+            <label htmlFor="settings-height" className="block text-sm text-slate-400 mb-1">身高 (cm)</label>
             <input
+              id="settings-height"
               type="number"
               value={form.heightCm || ''}
               onChange={(e) => setField('heightCm', e.target.value)}
@@ -290,8 +303,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">年齡</label>
+            <label htmlFor="settings-age" className="block text-sm text-slate-400 mb-1">年齡</label>
             <input
+              id="settings-age"
               type="number"
               value={form.age || ''}
               onChange={(e) => setField('age', e.target.value)}
@@ -299,8 +313,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">性別</label>
+            <label htmlFor="settings-gender" className="block text-sm text-slate-400 mb-1">性別</label>
             <select
+              id="settings-gender"
               value={form.gender}
               onChange={(e) => setField('gender', e.target.value)}
               className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
@@ -317,8 +332,9 @@ export default function Settings() {
         <h2 className="font-semibold text-slate-300">目標設定</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">目標體脂率 (%)</label>
+            <label htmlFor="settings-targetFat" className="block text-sm text-slate-400 mb-1">目標體脂率 (%)</label>
             <input
+              id="settings-targetFat"
               type="number"
               value={form.targetBodyFatPercentage || ''}
               onChange={(e) => setField('targetBodyFatPercentage', e.target.value)}
@@ -326,8 +342,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">目標體重 (kg)</label>
+            <label htmlFor="settings-targetWeight" className="block text-sm text-slate-400 mb-1">目標體重 (kg)</label>
             <input
+              id="settings-targetWeight"
               type="number"
               value={form.targetWeight || ''}
               onChange={(e) => setField('targetWeight', e.target.value)}
@@ -342,8 +359,9 @@ export default function Settings() {
         <h2 className="font-semibold text-slate-300">每日營養目標</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">蛋白質 (g)</label>
+            <label htmlFor="settings-protein" className="block text-sm text-slate-400 mb-1">蛋白質 (g)</label>
             <input
+              id="settings-protein"
               type="number"
               value={form.dailyProteinGoal || ''}
               onChange={(e) => setField('dailyProteinGoal', e.target.value)}
@@ -351,8 +369,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">熱量 (kcal)</label>
+            <label htmlFor="settings-calories" className="block text-sm text-slate-400 mb-1">熱量 (kcal)</label>
             <input
+              id="settings-calories"
               type="number"
               value={form.dailyCalorieGoal || ''}
               onChange={(e) => setField('dailyCalorieGoal', e.target.value)}
@@ -365,10 +384,11 @@ export default function Settings() {
       {/* Save Button */}
       <button
         onClick={handleSave}
-        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition-colors"
+        disabled={saving}
+        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-xl transition-colors min-h-[44px]"
       >
-        <Save size={16} />
-        {saved ? '已儲存 ✓' : '儲存設定'}
+        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+        {saving ? '儲存中...' : '儲存設定'}
       </button>
 
       {/* Data Management */}
@@ -377,19 +397,36 @@ export default function Settings() {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleExport}
-            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm"
+            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
           >
             <Download size={16} /> 匯出 JSON
           </button>
           <button
             onClick={handleImport}
-            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm"
+            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
           >
             <Upload size={16} /> 匯入 JSON
           </button>
         </div>
         <p className="text-xs text-slate-500">匯入會覆蓋現有資料，請先匯出備份。</p>
       </div>
+
+      {/* Confirm Clear Health Data */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        title="清除 Apple Health 數據"
+        message="確定要清除所有 Apple Health 匯入的數據嗎？此操作無法復原。"
+        confirmLabel="清除"
+        onConfirm={clearHealthData}
+        onCancel={() => setShowClearConfirm(false)}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={closeToast}
+      />
     </div>
   );
 }

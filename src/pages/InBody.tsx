@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
-import { Plus, Trash2, Edit2, X, Check } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Plus, Trash2, Edit2, X, Check, Loader2 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts';
 import { useInBody } from '../hooks/useInBody';
 import { useHealthMetrics } from '../hooks/useHealthData';
 import type { InBodyRecord } from '../types';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const METRICS = [
   { key: 'weight', label: '體重', unit: 'kg', color: '#3b82f6', healthType: 'bodyMass' as const },
@@ -36,6 +38,9 @@ export default function InBody() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [activeMetric, setActiveMetric] = useState<string>('weight');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({ visible: false, message: '', type: 'success' });
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   // Merge InBody + Apple Health data for charts
   const mergedChartData = useMemo(() => {
@@ -84,20 +89,52 @@ export default function InBody() {
   }
 
   async function handleSave() {
-    if (editId) {
-      await updateRecord(editId, form);
-    } else {
-      await addRecord(form);
+    if (form.weight <= 0) {
+      setToast({ visible: true, message: '體重不可為 0', type: 'error' as const });
+      return;
     }
-    setShowForm(false);
+    setSaving(true);
+    try {
+      if (editId) {
+        await updateRecord(editId, form);
+      } else {
+        await addRecord(form);
+      }
+      setShowForm(false);
+      setToast({ visible: true, message: '已儲存', type: 'success' as const });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (confirmDelete == null) return;
+    await deleteRecord(confirmDelete);
+    setConfirmDelete(null);
+    setToast({ visible: true, message: '已刪除', type: 'success' as const });
   }
 
   function setField(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: key === 'date' ? value : parseFloat(value) || 0 }));
   }
 
+  const closeToast = useCallback(() => setToast((t) => ({ ...t, visible: false })), []);
+
   const selectedMetric = METRICS.find((m) => m.key === activeMetric)!;
   const reversed = [...records].reverse();
+
+  const formFields = [
+    { key: 'date', label: '日期', type: 'date' },
+    { key: 'weight', label: '體重 (kg)', required: true },
+    { key: 'skeletalMuscleMass', label: '骨骼肌量 (kg)' },
+    { key: 'bodyFatMass', label: '體脂肪量 (kg)' },
+    { key: 'bmi', label: 'BMI' },
+    { key: 'bodyFatPercentage', label: '體脂率 (%)' },
+    { key: 'waistHipRatio', label: '腰臀比' },
+    { key: 'visceralFatLevel', label: '內臟脂肪等級' },
+    { key: 'basalMetabolicRate', label: '基礎代謝率 (kcal)' },
+    { key: 'score', label: 'InBody 分數' },
+  ];
 
   return (
     <div className="p-4 max-w-lg mx-auto space-y-6">
@@ -105,11 +142,24 @@ export default function InBody() {
         <h1 className="text-xl font-bold">InBody 數據</h1>
         <button
           onClick={openAdd}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition-colors min-h-[44px]"
         >
           <Plus size={16} /> 新增
         </button>
       </div>
+
+      {/* Empty state */}
+      {records.length === 0 && !hasHealthData && (
+        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700/50 text-center">
+          <p className="text-slate-400 mb-4">尚無 InBody 量測紀錄</p>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
+          >
+            <Plus size={16} /> 新增第一筆量測
+          </button>
+        </div>
+      )}
 
       {/* Trend Chart — merged InBody + Apple Health */}
       {mergedChartData.length > 1 && (
@@ -119,7 +169,7 @@ export default function InBody() {
               <button
                 key={m.key}
                 onClick={() => setActiveMetric(m.key)}
-                className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                className={`text-xs px-3 py-1.5 rounded-full transition-colors min-h-[44px] min-w-[44px] ${
                   activeMetric === m.key
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -197,12 +247,18 @@ export default function InBody() {
                   const first = records[0][key] as number;
                   const last = records[records.length - 1][key] as number;
                   const diff = last - first;
+                  const isGoodDown = key === 'weight' || key === 'bodyFatPercentage' || key === 'bmi';
+                  const colorClass = diff < 0
+                    ? (isGoodDown ? 'text-green-400' : 'text-red-400')
+                    : diff > 0
+                    ? (isGoodDown ? 'text-red-400' : 'text-green-400')
+                    : '';
                   return (
                     <tr key={key} className="border-t border-slate-700/50">
                       <td className="py-2">{label}</td>
                       <td className="text-right">{first}{unit}</td>
                       <td className="text-right">{last}{unit}</td>
-                      <td className={`text-right ${diff < 0 ? 'text-green-400' : diff > 0 ? 'text-red-400' : ''}`}>
+                      <td className={`text-right ${colorClass}`}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}{unit}
                       </td>
                     </tr>
@@ -223,82 +279,99 @@ export default function InBody() {
               來源：{healthWeight[0]?.sourceName}
             </span>
           </h2>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {[...healthWeight].reverse().map((m, i) => {
-              const fat = healthFat.find((f) => f.date === m.date);
-              const bmi = healthBmi.find((b) => b.date === m.date);
-              return (
-                <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-slate-700/30 last:border-0">
-                  <span className="text-orange-400 text-xs">{m.date}</span>
-                  <div className="flex gap-3 text-xs">
-                    <span>{m.value}kg</span>
-                    {fat && <span className="text-red-400">{fat.value}%</span>}
-                    {bmi && <span className="text-amber-400">BMI {bmi.value.toFixed(1)}</span>}
+          <div className="relative">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto scroll-mask">
+              {[...healthWeight].reverse().map((m, i) => {
+                const fat = healthFat.find((f) => f.date === m.date);
+                const bmi = healthBmi.find((b) => b.date === m.date);
+                return (
+                  <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-slate-700/30 last:border-0">
+                    <span className="text-orange-400 text-xs">{m.date}</span>
+                    <div className="flex gap-3 text-xs">
+                      <span>{m.value}kg</span>
+                      {fat && <span className="text-red-400">{fat.value}%</span>}
+                      {bmi && <span className="text-amber-400">BMI {bmi.value.toFixed(1)}</span>}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
       {/* Records List */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-300">InBody 量測紀錄</h2>
-        {reversed.map((record) => (
-          <div
-            key={record.id}
-            className="bg-slate-800 rounded-xl p-4 border border-slate-700/50"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-sm font-medium text-blue-400">{record.date}</span>
-              <div className="flex gap-2">
-                <button onClick={() => openEdit(record)} className="text-slate-400 hover:text-slate-200">
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={() => deleteRecord(record.id!)} className="text-slate-400 hover:text-red-400">
-                  <Trash2 size={14} />
-                </button>
+      {records.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-300">InBody 量測紀錄</h2>
+          {reversed.map((record) => (
+            <div
+              key={record.id}
+              className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 transition-transform active:scale-[0.98]"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-blue-400">{record.date}</span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => openEdit(record)}
+                    className="p-2 text-slate-400 hover:text-slate-200 rounded-lg"
+                    aria-label="編輯紀錄"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(record.id!)}
+                    className="p-2 text-slate-400 hover:text-red-400 rounded-lg"
+                    aria-label="刪除紀錄"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div><span className="text-slate-400">體重</span> <span className="font-medium">{record.weight}kg</span></div>
+                <div><span className="text-slate-400">體脂</span> <span className="font-medium">{record.bodyFatPercentage}%</span></div>
+                <div><span className="text-slate-400">肌肉</span> <span className="font-medium">{record.skeletalMuscleMass}kg</span></div>
+                <div><span className="text-slate-400">BMI</span> <span className="font-medium">{record.bmi}</span></div>
+                <div><span className="text-slate-400">BMR</span> <span className="font-medium">{record.basalMetabolicRate}</span></div>
+                <div><span className="text-slate-400">分數</span> <span className="font-medium">{record.score}</span></div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <div><span className="text-slate-400">體重</span> <span className="font-medium">{record.weight}kg</span></div>
-              <div><span className="text-slate-400">體脂</span> <span className="font-medium">{record.bodyFatPercentage}%</span></div>
-              <div><span className="text-slate-400">肌肉</span> <span className="font-medium">{record.skeletalMuscleMass}kg</span></div>
-              <div><span className="text-slate-400">BMI</span> <span className="font-medium">{record.bmi}</span></div>
-              <div><span className="text-slate-400">BMR</span> <span className="font-medium">{record.basalMetabolicRate}</span></div>
-              <div><span className="text-slate-400">分數</span> <span className="font-medium">{record.score}</span></div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Modal Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-slate-700">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowForm(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inbody-form-title"
+            className="bg-slate-800 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-slate-700"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <h3 className="font-semibold">{editId ? '編輯' : '新增'}量測紀錄</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white">
+              <h3 id="inbody-form-title" className="font-semibold">{editId ? '編輯' : '新增'}量測紀錄</h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                aria-label="關閉"
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="p-4 space-y-3">
-              {[
-                { key: 'date', label: '日期', type: 'date' },
-                { key: 'weight', label: '體重 (kg)' },
-                { key: 'skeletalMuscleMass', label: '骨骼肌量 (kg)' },
-                { key: 'bodyFatMass', label: '體脂肪量 (kg)' },
-                { key: 'bmi', label: 'BMI' },
-                { key: 'bodyFatPercentage', label: '體脂率 (%)' },
-                { key: 'waistHipRatio', label: '腰臀比' },
-                { key: 'visceralFatLevel', label: '內臟脂肪等級' },
-                { key: 'basalMetabolicRate', label: '基礎代謝率 (kcal)' },
-                { key: 'score', label: 'InBody 分數' },
-              ].map(({ key, label, type }) => (
+              {formFields.map(({ key, label, type, required }) => (
                 <div key={key}>
-                  <label className="block text-sm text-slate-400 mb-1">{label}</label>
+                  <label htmlFor={`inbody-${key}`} className="block text-sm text-slate-400 mb-1">
+                    {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+                  </label>
                   <input
+                    id={`inbody-${key}`}
                     type={type || 'number'}
                     step="any"
                     value={form[key as keyof typeof form]}
@@ -311,14 +384,32 @@ export default function InBody() {
             <div className="p-4 border-t border-slate-700">
               <button
                 onClick={handleSave}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg transition-colors"
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-lg transition-colors min-h-[44px]"
               >
-                <Check size={16} /> 儲存
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {saving ? '儲存中...' : '儲存'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDelete != null}
+        title="刪除紀錄"
+        message="確定要刪除這筆 InBody 量測紀錄嗎？此操作無法復原。"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={closeToast}
+      />
     </div>
   );
 }
