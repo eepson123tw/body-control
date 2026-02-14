@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, X, Check, Loader2, Utensils } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, X, Check, Loader2, Utensils, Camera, Sparkles } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useDiet } from '../hooks/useDiet';
 import type { DietEntry } from '../types';
 import { MEAL_LABELS } from '../types';
+import { recognizeFood, fileToBase64DataUrl } from '../utils/foodRecognition';
+import type { FoodRecognitionResult } from '../utils/foodRecognition';
 import {
   ResponsiveContainer,
   BarChart,
@@ -49,6 +51,10 @@ export default function Diet() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({ visible: false, message: '', type: 'success' });
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiResults, setAiResults] = useState<FoodRecognitionResult[] | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const proteinGoal = profile?.dailyProteinGoal ?? 120;
   const calorieGoal = profile?.dailyCalorieGoal ?? 1800;
@@ -100,6 +106,77 @@ export default function Diet() {
     setToast({ visible: true, message: '已刪除', type: 'success' as const });
   }
 
+  async function handlePhotoCapture(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be selected again
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+
+    const apiKey = profile?.openaiApiKey;
+    if (!apiKey) {
+      setToast({ visible: true, message: '請先在設定頁面輸入 OpenAI API Key', type: 'error' });
+      return;
+    }
+
+    setAnalyzing(true);
+    setAiResults(null);
+    try {
+      const base64 = await fileToBase64DataUrl(file);
+      setPhotoPreview(base64);
+      const results = await recognizeFood(base64, apiKey);
+      if (results.length === 0) {
+        setToast({ visible: true, message: '無法辨識照片中的食物，請手動輸入', type: 'error' });
+        setPhotoPreview(null);
+      } else {
+        setAiResults(results);
+      }
+    } catch (err) {
+      setToast({ visible: true, message: `辨識失敗：${err instanceof Error ? err.message : '未知錯誤'}`, type: 'error' });
+      setPhotoPreview(null);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function applyAiResult(result: FoodRecognitionResult) {
+    setForm((f) => ({
+      ...f,
+      foodName: result.foodName,
+      protein: result.protein,
+      calories: result.calories,
+    }));
+    setAiResults(null);
+    setPhotoPreview(null);
+    setShowForm(true);
+  }
+
+  async function quickAddAiResult(result: FoodRecognitionResult, meal: DietEntry['meal']) {
+    await addEntry({
+      date: selectedDate,
+      meal,
+      foodName: result.foodName,
+      protein: result.protein,
+      calories: result.calories,
+    });
+    setToast({ visible: true, message: '已新增', type: 'success' });
+  }
+
+  async function addAllAiResults(meal: DietEntry['meal']) {
+    if (!aiResults) return;
+    for (const result of aiResults) {
+      await addEntry({
+        date: selectedDate,
+        meal,
+        foodName: result.foodName,
+        protein: result.protein,
+        calories: result.calories,
+      });
+    }
+    setAiResults(null);
+    setPhotoPreview(null);
+    setToast({ visible: true, message: `已新增 ${aiResults.length} 項食物`, type: 'success' });
+  }
+
   const closeToast = useCallback(() => setToast((t) => ({ ...t, visible: false })), []);
 
   const mealGroups = (['breakfast', 'lunch', 'dinner', 'snack'] as const).map((meal) => ({
@@ -126,6 +203,16 @@ export default function Diet() {
     <div className="p-4 max-w-lg mx-auto space-y-6">
       <h1 className="text-xl font-bold">飲食紀錄</h1>
 
+      {/* Hidden camera input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handlePhotoCapture}
+        className="hidden"
+      />
+
       {/* Date Navigation */}
       <div className="flex items-center justify-between bg-bg-surface rounded-xl p-3 border border-border-default">
         <button
@@ -150,12 +237,117 @@ export default function Diet() {
         <div className="bg-bg-surface rounded-xl p-8 border border-border-default text-center">
           <Utensils size={32} className="text-text-faint mx-auto mb-3" />
           <p className="text-text-muted mb-4">尚無飲食紀錄</p>
-          <button
-            onClick={() => openAdd('lunch')}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => openAdd('lunch')}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
+            >
+              <Plus size={16} /> 手動輸入
+            </button>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={analyzing}
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
+            >
+              {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              拍照辨識
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Photo Button — always visible when there are entries */}
+      {(hasAnyEntries || entries.length > 0) && (
+        <button
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={analyzing}
+          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-xl transition-colors text-sm min-h-[44px]"
+        >
+          {analyzing ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              AI 辨識中...
+            </>
+          ) : (
+            <>
+              <Camera size={16} />
+              拍照辨識食物
+            </>
+          )}
+        </button>
+      )}
+
+      {/* AI Results Modal */}
+      {aiResults && aiResults.length > 0 && (
+        <div
+          className="fixed inset-0 bg-bg-overlay z-50 flex items-end sm:items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          onClick={() => { setAiResults(null); setPhotoPreview(null); }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-results-title"
+            className="bg-bg-surface rounded-xl w-full max-w-md max-h-[85vh] flex flex-col border border-border-strong"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Plus size={16} /> 記錄今天的第一餐
-          </button>
+            <div className="flex items-center justify-between p-4 border-b border-border-strong shrink-0">
+              <h3 id="ai-results-title" className="font-semibold flex items-center gap-2">
+                <Sparkles size={16} className="text-amber-400" />
+                AI 辨識結果
+              </h3>
+              <button
+                onClick={() => { setAiResults(null); setPhotoPreview(null); }}
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg"
+                aria-label="關閉"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+              {photoPreview && (
+                <img src={photoPreview} alt="拍攝的食物照片" className="w-full h-40 object-cover rounded-lg" />
+              )}
+              {aiResults.map((result, i) => (
+                <div key={i} className="flex items-center justify-between bg-bg-elevated/50 p-3 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">{result.foodName}</p>
+                    <div className="flex gap-3 text-xs mt-1">
+                      <span className="text-blue-400">{result.protein}g 蛋白質</span>
+                      <span className="text-amber-400">{result.calories} kcal</span>
+                      <span className={`${result.confidence === 'high' ? 'text-green-400' : result.confidence === 'medium' ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {result.confidence === 'high' ? '高信心' : result.confidence === 'medium' ? '中信心' : '低信心'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => applyAiResult(result)}
+                      className="text-xs bg-bg-elevated hover:opacity-80 px-2.5 py-1.5 rounded-md text-text-secondary transition-colors min-h-[36px]"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      onClick={() => quickAddAiResult(result, form.meal)}
+                      className="text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-2.5 py-1.5 rounded-md transition-colors min-h-[36px]"
+                    >
+                      新增
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {aiResults.length > 1 && (
+              <div className="p-4 border-t border-border-strong shrink-0">
+                <button
+                  onClick={() => addAllAiResults(form.meal)}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg transition-colors min-h-[44px]"
+                >
+                  <Check size={16} />
+                  全部新增 ({aiResults.length} 項)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

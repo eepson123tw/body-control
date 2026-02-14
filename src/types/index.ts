@@ -50,6 +50,7 @@ export interface UserProfile {
   targetWeight: number;
   dailyProteinGoal: number;
   dailyCalorieGoal: number;
+  openaiApiKey?: string;
 }
 
 export const MEAL_LABELS: Record<DietEntry['meal'], string> = {

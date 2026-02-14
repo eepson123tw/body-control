@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Save, Download, Upload, Apple, Trash2, Loader2, Sun, Moon, Monitor } from 'lucide-react';
+import { Save, Download, Upload, Apple, Trash2, Loader2, Sun, Moon, Monitor, Eye, EyeOff, Camera } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { UserProfile } from '../types';
@@ -30,6 +30,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' }>({ visible: false, message: '', type: 'success' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   // Apple Health import state
   const [importing, setImporting] = useState(false);
@@ -247,6 +248,40 @@ export default function Settings() {
               {label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* AI 飲食辨識 */}
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-3">
+        <div className="flex items-center gap-2">
+          <Camera size={20} className="text-text-secondary" />
+          <h2 className="font-semibold text-text-secondary">AI 飲食辨識</h2>
+        </div>
+        <p className="text-xs text-text-muted">
+          輸入 OpenAI API Key 後，可在飲食頁面拍照辨識食物，自動填入營養資料。
+        </p>
+        <div>
+          <label htmlFor="settings-apikey" className="block text-sm text-text-muted mb-1">OpenAI API Key</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                id="settings-apikey"
+                type={showApiKey ? 'text' : 'password'}
+                value={form.openaiApiKey ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, openaiApiKey: e.target.value }))}
+                className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="sk-..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary"
+                aria-label={showApiKey ? '隱藏' : '顯示'}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
