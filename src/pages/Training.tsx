@@ -145,9 +145,9 @@ export default function Training() {
 
       {/* Empty state */}
       {!hasAnySessions && (
-        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700/50 text-center">
-          <Dumbbell size={32} className="text-slate-500 mx-auto mb-3" />
-          <p className="text-slate-400 mb-4">尚無訓練紀錄</p>
+        <div className="bg-bg-surface rounded-xl p-8 border border-border-default text-center">
+          <Dumbbell size={32} className="text-text-faint mx-auto mb-3" />
+          <p className="text-text-muted mb-4">尚無訓練紀錄</p>
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
@@ -160,11 +160,11 @@ export default function Training() {
       {hasAnySessions && (
         <>
           {/* Calendar */}
-          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
+          <div className="bg-bg-surface rounded-xl p-4 border border-border-default">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => shiftMonth(-1)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg"
                 aria-label="上個月"
               >
                 <ChevronLeft size={20} />
@@ -172,7 +172,7 @@ export default function Training() {
               <span className="font-medium">{monthLabel}</span>
               <button
                 onClick={() => shiftMonth(1)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg"
                 aria-label="下個月"
               >
                 <ChevronRight size={20} />
@@ -180,7 +180,7 @@ export default function Training() {
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
               {['一', '二', '三', '四', '五', '六', '日'].map((d) => (
-                <div key={d} className="text-slate-500 py-1">{d}</div>
+                <div key={d} className="text-text-faint py-1">{d}</div>
               ))}
               {Array.from({ length: calendarOffset }).map((_, i) => (
                 <div key={`e-${i}`} />
@@ -201,7 +201,7 @@ export default function Training() {
                         ? 'bg-orange-500/20 text-orange-400 font-medium'
                         : isToday
                         ? 'bg-blue-500/20 text-blue-400'
-                        : 'text-slate-400'
+                        : 'text-text-muted'
                     }`}
                   >
                     {day}
@@ -209,7 +209,7 @@ export default function Training() {
                 );
               })}
             </div>
-            <p className="text-xs text-slate-400 mt-3">
+            <p className="text-xs text-text-muted mt-3">
               {monthLabel} 已訓練 {sessions.length + monthHealthWorkouts.length} 次
               {monthHealthWorkouts.length > 0 && (
                 <span className="text-orange-400"> (含 Apple Watch {monthHealthWorkouts.length} 次)</span>
@@ -219,19 +219,19 @@ export default function Training() {
 
           {/* Session List */}
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-300">訓練紀錄</h2>
+            <h2 className="text-sm font-semibold text-text-secondary">訓練紀錄</h2>
             {[...sessions].reverse().map((session) => (
-              <div key={session.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 transition-transform active:scale-[0.98]">
+              <div key={session.id} className="bg-bg-surface rounded-xl p-4 border border-border-default transition-transform active:scale-[0.98]">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <span className="text-sm text-blue-400">{session.date}</span>
-                    <span className="ml-2 text-xs bg-slate-700 px-2 py-0.5 rounded-full">
+                    <span className="ml-2 text-xs bg-bg-elevated px-2 py-0.5 rounded-full">
                       {TRAINING_TYPE_LABELS[session.type]}
                     </span>
                   </div>
                   <button
                     onClick={() => setConfirmDelete(session.id!)}
-                    className="p-2 text-slate-400 hover:text-red-400 rounded-lg"
+                    className="p-2 text-text-muted hover:text-red-400 rounded-lg"
                     aria-label="刪除訓練紀錄"
                   >
                     <Trash2 size={18} />
@@ -239,21 +239,21 @@ export default function Training() {
                 </div>
                 <div className="space-y-1 text-sm">
                   {session.exercises.map((ex, i) => (
-                    <div key={i} className="flex justify-between text-slate-300">
+                    <div key={i} className="flex justify-between text-text-secondary">
                       <span>{ex.name}</span>
-                      <span className="text-slate-500">
+                      <span className="text-text-faint">
                         {ex.sets.map((s) => `${s.weight}kg×${s.reps}`).join(', ')}
                       </span>
                     </div>
                   ))}
                 </div>
                 {session.notes && (
-                  <p className="text-xs text-slate-500 mt-2">{session.notes}</p>
+                  <p className="text-xs text-text-faint mt-2">{session.notes}</p>
                 )}
               </div>
             ))}
             {sessions.length === 0 && monthHealthWorkouts.length === 0 && (
-              <p className="text-sm text-slate-500 text-center py-4">本月尚無訓練紀錄</p>
+              <p className="text-sm text-text-faint text-center py-4">本月尚無訓練紀錄</p>
             )}
           </div>
 
@@ -264,7 +264,7 @@ export default function Training() {
                 <Watch size={14} /> Apple Watch 運動紀錄
               </h2>
               {[...monthHealthWorkouts].reverse().map((w) => (
-                <div key={w.id} className="bg-slate-800 rounded-xl p-4 border border-orange-500/20 transition-transform active:scale-[0.98]">
+                <div key={w.id} className="bg-bg-surface rounded-xl p-4 border border-orange-500/20 transition-transform active:scale-[0.98]">
                   <div className="flex justify-between items-start mb-1">
                     <div>
                       <span className="text-sm text-orange-400">{w.date}</span>
@@ -273,7 +273,7 @@ export default function Training() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-4 text-sm text-slate-400 mt-1">
+                  <div className="flex gap-4 text-sm text-text-muted mt-1">
                     <span>{w.duration.toFixed(0)} 分鐘</span>
                     {w.totalEnergyBurned != null && <span>{w.totalEnergyBurned} kcal</span>}
                     {w.totalDistance != null && w.totalDistance > 0 && <span>{w.totalDistance} km</span>}
@@ -285,8 +285,8 @@ export default function Training() {
 
           {/* Volume Trend */}
           {volumeData.length > 1 && (
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-              <h2 className="text-sm font-semibold text-slate-300 mb-3">訓練量趨勢</h2>
+            <div className="bg-bg-surface rounded-xl p-4 border border-border-default">
+              <h2 className="text-sm font-semibold text-text-secondary mb-3">訓練量趨勢</h2>
               <TrendChart data={volumeData} dataKey="volume" unit=" kg" color="#22c55e" height={160} />
             </div>
           )}
@@ -296,45 +296,45 @@ export default function Training() {
       {/* Add Form Modal */}
       {showForm && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 bg-bg-overlay z-50 flex items-end sm:items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
           onClick={() => setShowForm(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="training-form-title"
-            className="bg-slate-800 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-slate-700"
+            className="bg-bg-surface rounded-xl w-full max-w-md max-h-[85vh] flex flex-col border border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+            <div className="flex items-center justify-between p-4 border-b border-border-strong shrink-0">
               <h3 id="training-form-title" className="font-semibold">新增訓練紀錄</h3>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg"
                 aria-label="關閉"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="training-date" className="block text-sm text-slate-400 mb-1">日期</label>
+                  <label htmlFor="training-date" className="block text-sm text-text-muted mb-1">日期</label>
                   <input
                     id="training-date"
                     type="date"
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label htmlFor="training-type" className="block text-sm text-slate-400 mb-1">類型</label>
+                  <label htmlFor="training-type" className="block text-sm text-text-muted mb-1">類型</label>
                   <select
                     id="training-type"
                     value={formType}
                     onChange={(e) => setFormType(e.target.value as TrainingSession['type'])}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                   >
                     {Object.entries(TRAINING_TYPE_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -345,13 +345,13 @@ export default function Training() {
 
               {/* Exercise Templates */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">快速加入動作</label>
+                <label className="block text-sm text-text-muted mb-2">快速加入動作</label>
                 <div className="flex flex-wrap gap-1.5">
                   {EXERCISE_TEMPLATES[formType].map((name) => (
                     <button
                       key={name}
                       onClick={() => addExercise(name)}
-                      className="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-md text-slate-300 transition-colors min-h-[44px]"
+                      className="text-xs bg-bg-elevated hover:opacity-80 px-2.5 py-1.5 rounded-md text-text-secondary transition-colors min-h-[44px]"
                     >
                       + {name}
                     </button>
@@ -361,12 +361,12 @@ export default function Training() {
 
               {/* Exercise List */}
               {formExercises.map((ex, exIdx) => (
-                <div key={exIdx} className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+                <div key={exIdx} className="bg-bg-input/50 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-sm">{ex.name}</span>
                     <button
                       onClick={() => removeExercise(exIdx)}
-                      className="p-2 text-slate-500 hover:text-red-400 rounded-lg"
+                      className="p-2 text-text-faint hover:text-red-400 rounded-lg"
                       aria-label={`移除 ${ex.name}`}
                     >
                       <Trash2 size={16} />
@@ -374,28 +374,28 @@ export default function Training() {
                   </div>
                   {ex.sets.map((set, setIdx) => (
                     <div key={setIdx} className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-500 w-8">#{setIdx + 1}</span>
+                      <span className="text-text-faint w-8">#{setIdx + 1}</span>
                       <input
                         type="number"
                         placeholder="kg"
                         aria-label={`${ex.name} 第 ${setIdx + 1} 組重量`}
                         value={set.weight || ''}
                         onChange={(e) => updateSet(exIdx, setIdx, 'weight', parseFloat(e.target.value) || 0)}
-                        className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                        className="flex-1 bg-bg-surface border border-border-strong rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
                       />
-                      <span className="text-slate-500">×</span>
+                      <span className="text-text-faint">×</span>
                       <input
                         type="number"
                         placeholder="次"
                         aria-label={`${ex.name} 第 ${setIdx + 1} 組次數`}
                         value={set.reps || ''}
                         onChange={(e) => updateSet(exIdx, setIdx, 'reps', parseInt(e.target.value) || 0)}
-                        className="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                        className="w-16 bg-bg-surface border border-border-strong rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
                       />
                       {ex.sets.length > 1 && (
                         <button
                           onClick={() => removeSet(exIdx, setIdx)}
-                          className="p-2 text-slate-500 hover:text-red-400 rounded-lg"
+                          className="p-2 text-text-faint hover:text-red-400 rounded-lg"
                           aria-label="移除這組"
                         >
                           <X size={16} />
@@ -413,18 +413,18 @@ export default function Training() {
               ))}
 
               <div>
-                <label htmlFor="training-notes" className="block text-sm text-slate-400 mb-1">備註</label>
+                <label htmlFor="training-notes" className="block text-sm text-text-muted mb-1">備註</label>
                 <input
                   id="training-notes"
                   type="text"
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                   placeholder="選填"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 sticky bottom-0 bg-slate-800">
+            <div className="p-4 border-t border-border-strong shrink-0">
               <button
                 onClick={handleSave}
                 disabled={saving}

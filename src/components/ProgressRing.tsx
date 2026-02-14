@@ -30,7 +30,7 @@ export default function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#334155"
+          stroke="var(--color-ring-track)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -48,7 +48,7 @@ export default function ProgressRing({
       </svg>
       <div className="absolute flex flex-col items-center">
         {label && <span className="text-2xl font-bold">{label}</span>}
-        {sublabel && <span className="text-xs text-slate-400">{sublabel}</span>}
+        {sublabel && <span className="text-xs text-text-muted">{sublabel}</span>}
       </div>
     </div>
   );

@@ -1,9 +1,95 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-input: var(--color-bg-input);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-nav: var(--color-bg-nav);
+  --color-bg-overlay: var(--color-bg-overlay);
+
+  --color-border-default: var(--color-border-default);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+
+  --color-chart-grid: var(--color-chart-grid);
+  --color-chart-axis: var(--color-chart-axis);
+  --color-chart-tick: var(--color-chart-tick);
+  --color-chart-tooltip-bg: var(--color-chart-tooltip-bg);
+  --color-chart-tooltip-border: var(--color-chart-tooltip-border);
+  --color-chart-tooltip-text: var(--color-chart-tooltip-text);
+
+  --color-ring-track: var(--color-ring-track);
+
+  --color-scrollbar-thumb: var(--color-scrollbar-thumb);
+}
+
+:root {
+  --color-bg-base: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-bg-input: #f1f5f9;
+  --color-bg-elevated: #e2e8f0;
+  --color-bg-nav: rgba(255, 255, 255, 0.95);
+  --color-bg-overlay: rgba(0, 0, 0, 0.4);
+
+  --color-border-default: rgba(203, 213, 225, 0.5);
+  --color-border-strong: #cbd5e1;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-text-faint: #94a3b8;
+
+  --color-chart-grid: #e2e8f0;
+  --color-chart-axis: #94a3b8;
+  --color-chart-tick: #64748b;
+  --color-chart-tooltip-bg: #ffffff;
+  --color-chart-tooltip-border: #e2e8f0;
+  --color-chart-tooltip-text: #0f172a;
+
+  --color-ring-track: #e2e8f0;
+
+  --color-scrollbar-thumb: #cbd5e1;
+}
+
+.dark {
+  --color-bg-base: #0f172a;
+  --color-bg-surface: #1e293b;
+  --color-bg-input: #0f172a;
+  --color-bg-elevated: #334155;
+  --color-bg-nav: rgba(15, 23, 42, 0.95);
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-border-default: rgba(51, 65, 85, 0.5);
+  --color-border-strong: #475569;
+
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-faint: #64748b;
+
+  --color-chart-grid: #334155;
+  --color-chart-axis: #64748b;
+  --color-chart-tick: #94a3b8;
+  --color-chart-tooltip-bg: #1e293b;
+  --color-chart-tooltip-border: #334155;
+  --color-chart-tooltip-text: #f1f5f9;
+
+  --color-ring-track: #334155;
+
+  --color-scrollbar-thumb: #475569;
+}
+
 body {
   margin: 0;
-  background-color: #0f172a;
-  color: #f1f5f9;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
@@ -22,18 +108,24 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--color-scrollbar-thumb);
   border-radius: 2px;
 }
 
 .recharts-default-tooltip {
-  background-color: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background-color: var(--color-chart-tooltip-bg) !important;
+  border: 1px solid var(--color-chart-tooltip-border) !important;
   border-radius: 8px !important;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+:root:not(.dark) input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
 }
 
 @keyframes slide-down {

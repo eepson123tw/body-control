@@ -1,14 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Save, Download, Upload, Apple, Trash2, Loader2 } from 'lucide-react';
+import { Save, Download, Upload, Apple, Trash2, Loader2, Sun, Moon, Monitor } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { UserProfile } from '../types';
 import { parseAppleHealthExport } from '../utils/appleHealthParser';
 import { isShortcutJSON, parseShortcutJSON } from '../utils/shortcutImporter';
+import { useThemeContext } from '../contexts/ThemeContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
 
+const THEME_OPTIONS = [
+  { value: 'light' as const, label: '淺色', icon: Sun },
+  { value: 'dark' as const, label: '深色', icon: Moon },
+  { value: 'system' as const, label: '系統', icon: Monitor },
+];
+
 export default function Settings() {
+  const { mode, setMode } = useThemeContext();
   const profile = useLiveQuery(() => db.userProfile.toCollection().first());
   const [form, setForm] = useState<UserProfile>({
     heightCm: 173,
@@ -221,14 +229,35 @@ export default function Settings() {
     <div className="p-4 max-w-lg mx-auto space-y-6">
       <h1 className="text-xl font-bold">設定</h1>
 
+      {/* Theme Switcher */}
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-3">
+        <h2 className="font-semibold text-text-secondary">外觀主題</h2>
+        <div className="grid grid-cols-3 gap-2">
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setMode(value)}
+              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                mode === value
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-bg-elevated text-text-secondary hover:opacity-80'
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Apple Health Import */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-4">
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-4">
         <div className="flex items-center gap-2">
-          <Apple size={20} className="text-slate-300" />
-          <h2 className="font-semibold text-slate-300">Apple Health 匯入</h2>
+          <Apple size={20} className="text-text-secondary" />
+          <h2 className="font-semibold text-text-secondary">Apple Health 匯入</h2>
         </div>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-text-muted">
           支援兩種格式：完整匯出 export.xml 或 iOS 捷徑產生的 JSON。
           JSON 格式為增量合併（不覆蓋），可重複匯入。
         </p>
@@ -247,7 +276,7 @@ export default function Settings() {
               <span>解析中...</span>
               <span>{importProgress}%</span>
             </div>
-            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-3 bg-bg-elevated rounded-full overflow-hidden">
               <div
                 className="h-full bg-green-500 rounded-full transition-all duration-300"
                 style={{ width: `${importProgress}%` }}
@@ -266,15 +295,15 @@ export default function Settings() {
         {importResult && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm space-y-1">
             <p className="text-green-400 font-medium">匯入完成！</p>
-            <p className="text-slate-300">健康指標：{importResult.metrics} 筆</p>
-            <p className="text-slate-300">運動紀錄：{importResult.workouts} 筆</p>
-            <p className="text-slate-300">活動摘要：{importResult.activities} 天</p>
+            <p className="text-text-secondary">健康指標：{importResult.metrics} 筆</p>
+            <p className="text-text-secondary">運動紀錄：{importResult.workouts} 筆</p>
+            <p className="text-text-secondary">活動摘要：{importResult.activities} 天</p>
           </div>
         )}
 
         {hasHealthData && !importResult && (
-          <div className="bg-slate-700/50 rounded-lg p-3 text-sm space-y-1">
-            <p className="text-slate-300">已匯入數據：{healthMetricCount} 筆指標 / {healthWorkoutCount} 筆運動 / {activityCount} 天活動</p>
+          <div className="bg-bg-elevated/50 rounded-lg p-3 text-sm space-y-1">
+            <p className="text-text-secondary">已匯入數據：{healthMetricCount} 筆指標 / {healthWorkoutCount} 筆運動 / {activityCount} 天活動</p>
           </div>
         )}
 
@@ -289,36 +318,36 @@ export default function Settings() {
       </div>
 
       {/* Profile */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-4">
-        <h2 className="font-semibold text-slate-300">個人資料</h2>
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-4">
+        <h2 className="font-semibold text-text-secondary">個人資料</h2>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label htmlFor="settings-height" className="block text-sm text-slate-400 mb-1">身高 (cm)</label>
+            <label htmlFor="settings-height" className="block text-sm text-text-muted mb-1">身高 (cm)</label>
             <input
               id="settings-height"
               type="number"
               value={form.heightCm || ''}
               onChange={(e) => setField('heightCm', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label htmlFor="settings-age" className="block text-sm text-slate-400 mb-1">年齡</label>
+            <label htmlFor="settings-age" className="block text-sm text-text-muted mb-1">年齡</label>
             <input
               id="settings-age"
               type="number"
               value={form.age || ''}
               onChange={(e) => setField('age', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label htmlFor="settings-gender" className="block text-sm text-slate-400 mb-1">性別</label>
+            <label htmlFor="settings-gender" className="block text-sm text-text-muted mb-1">性別</label>
             <select
               id="settings-gender"
               value={form.gender}
               onChange={(e) => setField('gender', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="男">男</option>
               <option value="女">女</option>
@@ -328,54 +357,54 @@ export default function Settings() {
       </div>
 
       {/* Goals */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-4">
-        <h2 className="font-semibold text-slate-300">目標設定</h2>
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-4">
+        <h2 className="font-semibold text-text-secondary">目標設定</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="settings-targetFat" className="block text-sm text-slate-400 mb-1">目標體脂率 (%)</label>
+            <label htmlFor="settings-targetFat" className="block text-sm text-text-muted mb-1">目標體脂率 (%)</label>
             <input
               id="settings-targetFat"
               type="number"
               value={form.targetBodyFatPercentage || ''}
               onChange={(e) => setField('targetBodyFatPercentage', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label htmlFor="settings-targetWeight" className="block text-sm text-slate-400 mb-1">目標體重 (kg)</label>
+            <label htmlFor="settings-targetWeight" className="block text-sm text-text-muted mb-1">目標體重 (kg)</label>
             <input
               id="settings-targetWeight"
               type="number"
               value={form.targetWeight || ''}
               onChange={(e) => setField('targetWeight', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
       </div>
 
       {/* Nutrition Goals */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-4">
-        <h2 className="font-semibold text-slate-300">每日營養目標</h2>
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-4">
+        <h2 className="font-semibold text-text-secondary">每日營養目標</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="settings-protein" className="block text-sm text-slate-400 mb-1">蛋白質 (g)</label>
+            <label htmlFor="settings-protein" className="block text-sm text-text-muted mb-1">蛋白質 (g)</label>
             <input
               id="settings-protein"
               type="number"
               value={form.dailyProteinGoal || ''}
               onChange={(e) => setField('dailyProteinGoal', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label htmlFor="settings-calories" className="block text-sm text-slate-400 mb-1">熱量 (kcal)</label>
+            <label htmlFor="settings-calories" className="block text-sm text-text-muted mb-1">熱量 (kcal)</label>
             <input
               id="settings-calories"
               type="number"
               value={form.dailyCalorieGoal || ''}
               onChange={(e) => setField('dailyCalorieGoal', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -392,23 +421,23 @@ export default function Settings() {
       </button>
 
       {/* Data Management */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-3">
-        <h2 className="font-semibold text-slate-300">資料管理</h2>
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-3">
+        <h2 className="font-semibold text-text-secondary">資料管理</h2>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleExport}
-            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
+            className="flex items-center justify-center gap-2 bg-bg-elevated hover:opacity-80 text-text-primary py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
           >
             <Download size={16} /> 匯出 JSON
           </button>
           <button
             onClick={handleImport}
-            className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
+            className="flex items-center justify-center gap-2 bg-bg-elevated hover:opacity-80 text-text-primary py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
           >
             <Upload size={16} /> 匯入 JSON
           </button>
         </div>
-        <p className="text-xs text-slate-500">匯入會覆蓋現有資料，請先匯出備份。</p>
+        <p className="text-xs text-text-faint">匯入會覆蓋現有資料，請先匯出備份。</p>
       </div>
 
       {/* Confirm Clear Health Data */}

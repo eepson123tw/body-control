@@ -82,9 +82,9 @@ export default function Dashboard() {
     return (
       <div className="p-4 max-w-lg mx-auto space-y-6">
         <h1 className="text-xl font-bold">減脂控制台</h1>
-        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700/50 text-center space-y-4">
-          <p className="text-lg font-medium text-slate-300">歡迎使用 InBody Control</p>
-          <p className="text-sm text-slate-400">開始記錄你的身體數據、飲食和訓練，追蹤減脂進度。</p>
+        <div className="bg-bg-surface rounded-xl p-8 border border-border-default text-center space-y-4">
+          <p className="text-lg font-medium text-text-secondary">歡迎使用 InBody Control</p>
+          <p className="text-sm text-text-muted">開始記錄你的身體數據、飲食和訓練，追蹤減脂進度。</p>
           <div className="flex flex-col gap-3 pt-2">
             <button
               onClick={() => navigate('/inbody')}
@@ -94,13 +94,13 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => navigate('/diet')}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
+              className="w-full bg-bg-elevated hover:opacity-80 text-text-primary py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
             >
               記錄今日飲食
             </button>
             <button
               onClick={() => navigate('/training')}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
+              className="w-full bg-bg-elevated hover:opacity-80 text-text-primary py-2.5 rounded-lg transition-colors text-sm min-h-[44px]"
             >
               開始訓練紀錄
             </button>
@@ -115,7 +115,7 @@ export default function Dashboard() {
       <h1 className="text-xl font-bold">減脂控制台</h1>
 
       {/* Hero: Progress Ring + Key Metrics */}
-      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50">
+      <div className="bg-bg-surface rounded-xl p-6 border border-border-default">
         <div className="flex flex-col items-center mb-4">
           <ProgressRing
             value={progressPct}
@@ -124,7 +124,7 @@ export default function Dashboard() {
             sublabel={`目標 ${targetFat}%`}
             color={progressPct >= 100 ? '#22c55e' : '#3b82f6'}
           />
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-text-muted">
             體脂率 {startFat}% → {targetFat}%　已完成 {progressPct.toFixed(0)}%
           </p>
         </div>
@@ -155,8 +155,8 @@ export default function Dashboard() {
       </div>
 
       {/* Today Overview: Diet + Weekly Training */}
-      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-300">今日概覽</h2>
+      <div className="bg-bg-surface rounded-xl p-4 border border-border-default space-y-4">
+        <h2 className="text-sm font-semibold text-text-secondary">今日概覽</h2>
 
         {/* Diet */}
         <div className="space-y-3">
@@ -165,7 +165,7 @@ export default function Dashboard() {
               <span>蛋白質</span>
               <span>{totalProtein} / {proteinGoal} g</span>
             </div>
-            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, (totalProtein / proteinGoal) * 100)}%` }}
@@ -177,7 +177,7 @@ export default function Dashboard() {
               <span>熱量</span>
               <span>{totalCalories} / {calorieGoal} kcal</span>
             </div>
-            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, (totalCalories / calorieGoal) * 100)}%` }}
@@ -187,7 +187,7 @@ export default function Dashboard() {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-700/50" />
+        <div className="border-t border-border-default" />
 
         {/* Weekly Training */}
         <div>
@@ -210,7 +210,7 @@ export default function Dashboard() {
                         : 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : isToday
                       ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-slate-700/50 text-slate-500'
+                      : 'bg-bg-elevated/50 text-text-faint'
                   }`}
                 >
                   {['一', '二', '三', '四', '五', '六', '日'][i]}
@@ -218,7 +218,7 @@ export default function Dashboard() {
               );
             })}
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-text-muted">
             已完成 {totalWeekWorkouts} 次訓練
             {weekHealthWorkouts.length > 0 && (
               <span className="text-orange-400"> (含 Apple Watch {weekHealthWorkouts.length} 次)</span>
@@ -229,16 +229,16 @@ export default function Dashboard() {
 
       {/* Apple Health — Collapsible */}
       {hasHealthInfo && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
+        <div className="bg-bg-surface rounded-xl border border-border-default overflow-hidden">
           <button
             onClick={() => setHealthExpanded((v) => !v)}
             className="w-full flex items-center justify-between p-4 text-left min-h-[44px]"
           >
-            <h2 className="text-sm font-semibold text-slate-300">Apple Health</h2>
+            <h2 className="text-sm font-semibold text-text-secondary">Apple Health</h2>
             {healthExpanded ? (
-              <ChevronUp size={18} className="text-slate-400" />
+              <ChevronUp size={18} className="text-text-muted" />
             ) : (
-              <ChevronDown size={18} className="text-slate-400" />
+              <ChevronDown size={18} className="text-text-muted" />
             )}
           </button>
           {healthExpanded && (
@@ -268,7 +268,7 @@ export default function Dashboard() {
               {/* Activity Rings */}
               {todayActivity && (
                 <div>
-                  <h3 className="text-xs text-slate-400 mb-3">今日活動</h3>
+                  <h3 className="text-xs text-text-muted mb-3">今日活動</h3>
                   <div className="flex items-center justify-around">
                     <div className="flex flex-col items-center">
                       <ProgressRing
@@ -280,7 +280,7 @@ export default function Dashboard() {
                         sublabel="kcal"
                         color="#ef4444"
                       />
-                      <span className="text-xs text-slate-400 mt-1">活動</span>
+                      <span className="text-xs text-text-muted mt-1">活動</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <ProgressRing
@@ -292,7 +292,7 @@ export default function Dashboard() {
                         sublabel="分鐘"
                         color="#22c55e"
                       />
-                      <span className="text-xs text-slate-400 mt-1">運動</span>
+                      <span className="text-xs text-text-muted mt-1">運動</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <ProgressRing
@@ -304,7 +304,7 @@ export default function Dashboard() {
                         sublabel="小時"
                         color="#3b82f6"
                       />
-                      <span className="text-xs text-slate-400 mt-1">站立</span>
+                      <span className="text-xs text-text-muted mt-1">站立</span>
                     </div>
                   </div>
                 </div>
@@ -316,8 +316,8 @@ export default function Dashboard() {
 
       {/* Weight Trend */}
       {last30.length > 1 && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-          <h2 className="text-sm font-semibold text-slate-300 mb-3">體重趨勢</h2>
+        <div className="bg-bg-surface rounded-xl p-4 border border-border-default">
+          <h2 className="text-sm font-semibold text-text-secondary mb-3">體重趨勢</h2>
           <TrendChart data={last30} dataKey="weight" unit=" kg" height={160} />
         </div>
       )}

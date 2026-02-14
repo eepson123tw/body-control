@@ -12,13 +12,13 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, unit, change, changeLabel, icon, invertColors = false }: StatCardProps) {
   const getTrendIcon = () => {
-    if (change === undefined || change === 0) return <Minus size={14} className="text-slate-400" />;
+    if (change === undefined || change === 0) return <Minus size={14} className="text-text-muted" />;
     if (change > 0) return <TrendingUp size={14} className={invertColors ? 'text-green-400' : 'text-red-400'} />;
     return <TrendingDown size={14} className={invertColors ? 'text-red-400' : 'text-green-400'} />;
   };
 
   const getChangeColor = () => {
-    if (change === undefined || change === 0) return 'text-slate-400';
+    if (change === undefined || change === 0) return 'text-text-muted';
     if (change > 0) return invertColors ? 'text-green-400' : 'text-red-400';
     return invertColors ? 'text-red-400' : 'text-green-400';
   };
@@ -28,14 +28,14 @@ export default function StatCard({ title, value, unit, change, changeLabel, icon
     : undefined;
 
   return (
-    <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 transition-transform active:scale-[0.98]">
+    <div className="bg-bg-surface rounded-xl p-4 border border-border-default transition-transform active:scale-[0.98]">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-slate-400">{title}</span>
-        {icon && <span className="text-slate-500">{icon}</span>}
+        <span className="text-sm text-text-muted">{title}</span>
+        {icon && <span className="text-text-faint">{icon}</span>}
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-2xl font-bold">{value}</span>
-        {unit && <span className="text-sm text-slate-400">{unit}</span>}
+        {unit && <span className="text-sm text-text-muted">{unit}</span>}
       </div>
       {change !== undefined && (
         <div
@@ -44,7 +44,7 @@ export default function StatCard({ title, value, unit, change, changeLabel, icon
         >
           {getTrendIcon()}
           <span>{change > 0 ? '+' : ''}{change.toFixed(1)}</span>
-          {changeLabel && <span className="text-slate-500">{changeLabel}</span>}
+          {changeLabel && <span className="text-text-faint">{changeLabel}</span>}
         </div>
       )}
     </div>

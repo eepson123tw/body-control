@@ -150,8 +150,8 @@ export default function InBody() {
 
       {/* Empty state */}
       {records.length === 0 && !hasHealthData && (
-        <div className="bg-slate-800 rounded-xl p-8 border border-slate-700/50 text-center">
-          <p className="text-slate-400 mb-4">尚無 InBody 量測紀錄</p>
+        <div className="bg-bg-surface rounded-xl p-8 border border-border-default text-center">
+          <p className="text-text-muted mb-4">尚無 InBody 量測紀錄</p>
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2.5 rounded-lg transition-colors min-h-[44px]"
@@ -163,7 +163,7 @@ export default function InBody() {
 
       {/* Trend Chart — merged InBody + Apple Health */}
       {mergedChartData.length > 1 && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
+        <div className="bg-bg-surface rounded-xl p-4 border border-border-default">
           <div className="flex gap-2 mb-4 flex-wrap">
             {METRICS.map((m) => (
               <button
@@ -172,7 +172,7 @@ export default function InBody() {
                 className={`text-xs px-3 py-1.5 rounded-full transition-colors min-h-[44px] min-w-[44px] ${
                   activeMetric === m.key
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    : 'bg-bg-elevated text-text-secondary hover:opacity-80'
                 }`}
               >
                 {m.label}
@@ -181,24 +181,24 @@ export default function InBody() {
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={mergedChartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" />
               <XAxis
                 dataKey="date"
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 11 }}
+                stroke="var(--color-chart-axis)"
+                tick={{ fill: 'var(--color-chart-tick)', fontSize: 11 }}
                 tickFormatter={(v: string) => v.slice(5)}
               />
               <YAxis
-                stroke="#64748b"
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                stroke="var(--color-chart-axis)"
+                tick={{ fill: 'var(--color-chart-tick)', fontSize: 12 }}
                 domain={['auto', 'auto']}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
+                  backgroundColor: 'var(--color-chart-tooltip-bg)',
+                  border: '1px solid var(--color-chart-tooltip-border)',
                   borderRadius: '8px',
-                  color: '#f1f5f9',
+                  color: 'var(--color-chart-tooltip-text)',
                 }}
               />
               {hasHealthData && <Legend wrapperStyle={{ fontSize: 12 }} />}
@@ -230,12 +230,12 @@ export default function InBody() {
 
       {/* Comparison */}
       {records.length >= 2 && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-          <h2 className="text-sm font-semibold text-slate-300 mb-3">前後對比</h2>
+        <div className="bg-bg-surface rounded-xl p-4 border border-border-default">
+          <h2 className="text-sm font-semibold text-text-secondary mb-3">前後對比</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-slate-400">
+                <tr className="text-text-muted">
                   <th className="text-left py-1">指標</th>
                   <th className="text-right py-1">{records[0].date.slice(5)}</th>
                   <th className="text-right py-1">{records[records.length - 1].date.slice(5)}</th>
@@ -254,7 +254,7 @@ export default function InBody() {
                     ? (isGoodDown ? 'text-red-400' : 'text-green-400')
                     : '';
                   return (
-                    <tr key={key} className="border-t border-slate-700/50">
+                    <tr key={key} className="border-t border-border-default">
                       <td className="py-2">{label}</td>
                       <td className="text-right">{first}{unit}</td>
                       <td className="text-right">{last}{unit}</td>
@@ -272,10 +272,10 @@ export default function InBody() {
 
       {/* Apple Health Body Records */}
       {healthWeight.length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4 border border-orange-500/20">
+        <div className="bg-bg-surface rounded-xl p-4 border border-orange-500/20">
           <h2 className="text-sm font-semibold text-orange-400 mb-3">
             Apple Health 體組成紀錄
-            <span className="text-xs text-slate-400 ml-2 font-normal">
+            <span className="text-xs text-text-muted ml-2 font-normal">
               來源：{healthWeight[0]?.sourceName}
             </span>
           </h2>
@@ -285,7 +285,7 @@ export default function InBody() {
                 const fat = healthFat.find((f) => f.date === m.date);
                 const bmi = healthBmi.find((b) => b.date === m.date);
                 return (
-                  <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-slate-700/30 last:border-0">
+                  <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-border-default last:border-0">
                     <span className="text-orange-400 text-xs">{m.date}</span>
                     <div className="flex gap-3 text-xs">
                       <span>{m.value}kg</span>
@@ -303,25 +303,25 @@ export default function InBody() {
       {/* Records List */}
       {records.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-300">InBody 量測紀錄</h2>
+          <h2 className="text-sm font-semibold text-text-secondary">InBody 量測紀錄</h2>
           {reversed.map((record) => (
             <div
               key={record.id}
-              className="bg-slate-800 rounded-xl p-4 border border-slate-700/50 transition-transform active:scale-[0.98]"
+              className="bg-bg-surface rounded-xl p-4 border border-border-default transition-transform active:scale-[0.98]"
             >
               <div className="flex justify-between items-start mb-2">
                 <span className="text-sm font-medium text-blue-400">{record.date}</span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEdit(record)}
-                    className="p-2 text-slate-400 hover:text-slate-200 rounded-lg"
+                    className="p-2 text-text-muted hover:text-text-primary rounded-lg"
                     aria-label="編輯紀錄"
                   >
                     <Edit2 size={18} />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(record.id!)}
-                    className="p-2 text-slate-400 hover:text-red-400 rounded-lg"
+                    className="p-2 text-text-muted hover:text-red-400 rounded-lg"
                     aria-label="刪除紀錄"
                   >
                     <Trash2 size={18} />
@@ -329,12 +329,12 @@ export default function InBody() {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm">
-                <div><span className="text-slate-400">體重</span> <span className="font-medium">{record.weight}kg</span></div>
-                <div><span className="text-slate-400">體脂</span> <span className="font-medium">{record.bodyFatPercentage}%</span></div>
-                <div><span className="text-slate-400">肌肉</span> <span className="font-medium">{record.skeletalMuscleMass}kg</span></div>
-                <div><span className="text-slate-400">BMI</span> <span className="font-medium">{record.bmi}</span></div>
-                <div><span className="text-slate-400">BMR</span> <span className="font-medium">{record.basalMetabolicRate}</span></div>
-                <div><span className="text-slate-400">分數</span> <span className="font-medium">{record.score}</span></div>
+                <div><span className="text-text-muted">體重</span> <span className="font-medium">{record.weight}kg</span></div>
+                <div><span className="text-text-muted">體脂</span> <span className="font-medium">{record.bodyFatPercentage}%</span></div>
+                <div><span className="text-text-muted">肌肉</span> <span className="font-medium">{record.skeletalMuscleMass}kg</span></div>
+                <div><span className="text-text-muted">BMI</span> <span className="font-medium">{record.bmi}</span></div>
+                <div><span className="text-text-muted">BMR</span> <span className="font-medium">{record.basalMetabolicRate}</span></div>
+                <div><span className="text-text-muted">分數</span> <span className="font-medium">{record.score}</span></div>
               </div>
             </div>
           ))}
@@ -344,30 +344,30 @@ export default function InBody() {
       {/* Modal Form */}
       {showForm && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 bg-bg-overlay z-50 flex items-end sm:items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
           onClick={() => setShowForm(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="inbody-form-title"
-            className="bg-slate-800 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-slate-700"
+            className="bg-bg-surface rounded-xl w-full max-w-md max-h-[85vh] flex flex-col border border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+            <div className="flex items-center justify-between p-4 border-b border-border-strong shrink-0">
               <h3 id="inbody-form-title" className="font-semibold">{editId ? '編輯' : '新增'}量測紀錄</h3>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-lg"
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg"
                 aria-label="關閉"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
               {formFields.map(({ key, label, type, required }) => (
                 <div key={key}>
-                  <label htmlFor={`inbody-${key}`} className="block text-sm text-slate-400 mb-1">
+                  <label htmlFor={`inbody-${key}`} className="block text-sm text-text-muted mb-1">
                     {label}{required && <span className="text-red-400 ml-0.5">*</span>}
                   </label>
                   <input
@@ -376,12 +376,12 @@ export default function InBody() {
                     step="any"
                     value={form[key as keyof typeof form]}
                     onChange={(e) => setField(key, e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full bg-bg-input border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-slate-700">
+            <div className="p-4 border-t border-border-strong shrink-0">
               <button
                 onClick={handleSave}
                 disabled={saving}

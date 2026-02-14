@@ -33,28 +33,28 @@ export default function TrendChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#334155" />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" />}
         {showAxis && (
           <>
             <XAxis
               dataKey={xKey}
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="var(--color-chart-axis)"
+              tick={{ fill: 'var(--color-chart-tick)', fontSize: 12 }}
               tickFormatter={(v: string) => v.slice(5)}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="var(--color-chart-axis)"
+              tick={{ fill: 'var(--color-chart-tick)', fontSize: 12 }}
               domain={['auto', 'auto']}
             />
           </>
         )}
         <Tooltip
           contentStyle={{
-            backgroundColor: '#1e293b',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--color-chart-tooltip-bg)',
+            border: '1px solid var(--color-chart-tooltip-border)',
             borderRadius: '8px',
-            color: '#f1f5f9',
+            color: 'var(--color-chart-tooltip-text)',
           }}
           formatter={(value: unknown) => [`${value}${unit}`, dataKey]}
           labelFormatter={(label: unknown) => String(label)}
